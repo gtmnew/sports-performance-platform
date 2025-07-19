@@ -13,11 +13,12 @@ export default class VitalSign extends BaseModel {
   @column()
   declare heartRate: number
 
-  @column()
+  @column({ columnName: 'vo2_max' })
   declare vo2Max: number
 
   @column()
   declare lactateLevel: number
+
   @column()
   declare hydrationLevel: number
 

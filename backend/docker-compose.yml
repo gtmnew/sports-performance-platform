@@ -18,6 +18,37 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: always
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass "myStrongPassword"
+    volumes:
+      - redisdata:/data
+    networks:
+      - backend
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-ui
+    restart: always
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    networks:
+      - backend
 
 volumes:
   pgdata:
+  redisdata:
+  redisinsight_data:
+
+networks:
+  backend:
+    driver: bridge
