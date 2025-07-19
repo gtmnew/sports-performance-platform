@@ -6,7 +6,6 @@ import router from '@adonisjs/core/services/router'
 
 router
   .group(() => {
-    // 📊 DASHBOARD ROUTES
     router
       .group(() => {
         // Métricas gerais do sistema (cached 5 min)
@@ -23,7 +22,6 @@ router
       })
       .prefix('/dashboard')
 
-    // 👥 ATHLETES ROUTES
     router
       .group(() => {
         // Lista de atletas ativos (cached 5 min)
@@ -56,7 +54,6 @@ router
       })
       .prefix('/vital-signs')
 
-    // // 🏥 INJURY RECORDS ROUTES
     // router
     //   .group(() => {
     //     // ➕ Registrar nova lesão
