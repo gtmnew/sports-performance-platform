@@ -52,7 +52,13 @@ export default class Athlete extends BaseModel {
   declare injuryRecords: HasMany<typeof InjuryRecord>
 
   public calculateInjuryRisk(): number {
-    const profile = JSON.parse(this.biomechanicsProfile || '{}')
+    let profile: any = {}
+    try {
+      profile = JSON.parse(this.biomechanicsProfile || '{}')
+    } catch (error) {
+      profile = {}
+    }
+
     let risk = 0
 
     if (profile.asymmetry > 15) risk += 25

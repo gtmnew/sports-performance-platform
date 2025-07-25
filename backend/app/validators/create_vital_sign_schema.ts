@@ -1,6 +1,7 @@
 import vine from '@vinejs/vine'
 
 export const CreateVitalSignSchema = vine.object({
+  athleteId: vine.number(),
   heartRate: vine.number(),
   vo2Max: vine.number(),
   lactateLevel: vine.number(),

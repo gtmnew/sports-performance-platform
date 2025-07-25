@@ -46,7 +46,40 @@ export default class AthletesController {
     const athletes = await Athlete.query()
       .select(['id', 'name', 'position', 'team', 'riskLevel', 'isActive'])
       .where('isActive', true)
-      .orderBy('name')
+      .preload('vitalSigns', (vitalSignQuery) => {
+        vitalSignQuery.select([
+          'id',
+          'athlete_id',
+          'heart_rate',
+          'vo2_max',
+          'lactate_level',
+          'hydration_level',
+          'fatigue_score',
+          'training_load',
+          'sleep_quality',
+          'perceived_exertion',
+          'created_at',
+        ])
+      })
+      .preload('injuryRecords', (injuryQuery) => {
+        injuryQuery.select([
+          'id',
+          'athlete_id',
+          'injury_type',
+          'body_part',
+          'severity',
+          'status',
+          'injury_date',
+          'recovery_date',
+          'expected_recovery',
+          'actual_recovery',
+          'treatment_protocol',
+          'cause',
+          'created_at',
+        ])
+      })
+      .orderBy('created_at', 'desc')
+      .limit(5)
 
     const result = {
       athletes,

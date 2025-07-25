@@ -3,7 +3,7 @@ import { SeverityInjuryEnum } from '../../app/enums/severity_injury_enum.js'
 import { StatusInjuryRecordEnum } from '../../app/enums/status_injury_record_enum.js'
 
 export default class extends BaseSchema {
-  protected tableName = 'injuryrecords'
+  protected tableName = 'injury_records'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {

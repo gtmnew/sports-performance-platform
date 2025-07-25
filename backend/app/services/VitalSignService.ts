@@ -2,6 +2,7 @@ import VitalSign from '#models/vitalsign'
 
 export class VitalSignService {
   static async create(payload: {
+    athleteId: number
     heartRate: number
     vo2Max: number
     lactateLevel: number
@@ -12,6 +13,7 @@ export class VitalSignService {
     perceivedExertion: number
   }): Promise<VitalSign> {
     const vitalSign = new VitalSign()
+    vitalSign.athleteId = payload.athleteId
     vitalSign.heartRate = payload.heartRate
     vitalSign.vo2Max = payload.vo2Max
     vitalSign.lactateLevel = payload.lactateLevel

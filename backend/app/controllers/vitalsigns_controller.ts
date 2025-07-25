@@ -6,6 +6,7 @@ import vine from '@vinejs/vine'
 export default class VitalSignsController {
   public async store({ response, request }: HttpContext) {
     const data = request.only([
+      'athleteId',
       'heartRate',
       'vo2Max',
       'lactateLevel',
