@@ -10,7 +10,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Eye, Gauge, HeartPlus, Home, Settings, Users } from 'lucide-react';
+import {
+  Activity,
+  Eye,
+  Gauge,
+  HeartPlus,
+  Home,
+  Settings,
+  Users,
+} from 'lucide-react';
 
 import Link from 'next/link';
 
@@ -54,8 +62,11 @@ const AppSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/">
-                <span>Fisio Dev</span>
+              <Link href="/" className="flex items-center gap-2">
+                <div className="p-1 rounded-full bg-gradient-to-r from-blue-500 to-green-500">
+                  <Activity className="text-black h-4 w-4" />
+                </div>
+                <span className="font-semibold text-base">Fisio Dev</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
