@@ -1,8 +1,8 @@
-import LoginComponent from '@/app/pages/LoginComponent';
+import LoginComponent from "@/app/pages/LoginComponent";
 
 const LoginPage = () => {
   return (
-    <div className="">
+    <div>
       <LoginComponent />
     </div>
   );

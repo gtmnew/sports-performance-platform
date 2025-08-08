@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { LoginForm, loginSchema } from '../schemas/login_schema';
-import { loginAction } from '@/lib/auth/server_auth';
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { LoginForm, loginSchema } from "../schemas/login_schema";
+import { loginAction } from "@/lib/auth/server_auth";
 import {
   Card,
   CardContent,
@@ -12,15 +12,15 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Activity, Heart, Lock, Mail, Trophy } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { zodResolver } from '@hookform/resolvers/zod';
-import Spinner from '../components/Spinner';
-import { showToast } from '@/utils/show_toaster';
+} from "@/components/ui/card";
+import { Activity, Heart, Lock, Mail, Trophy } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Spinner from "../components/Spinner";
+import { showToast } from "@/utils/show_toaster";
 
 const LoginComponent = () => {
   const {
@@ -41,25 +41,25 @@ const LoginComponent = () => {
     try {
       const result = await loginAction(data);
       if (result.success) {
-        showToast('Login realizado com sucesso!', 'success');
-        router.push('/');
+        showToast("Login realizado com sucesso!", "success");
+        router.push("/");
       }
     } catch {
-      showToast('Erro ao fazer login. Tente novamente.', 'error');
+      showToast("Erro ao fazer login. Tente novamente.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-[55rem] flex items-center justify-center relative overflow-hidden bg-transparent">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-transparent">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-32 h-32 bg-blue-400/5 rounded-full opacity-40 animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-24 h-24 bg-green-400/5 rounded-full opacity-40 animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 right-10 w-16 h-16 bg-orange-400/5 rounded-full opacity-40 animate-pulse delay-500"></div>
       </div>
 
-      <div className="w-full max-w-md relative z-10 px-4">
+      <div className="w-full max-w-md relative z-10 px-6 py-8">
         <Card className="bg-black/70 backdrop-blur-md border border-white/10 shadow-xl">
           <CardHeader className="text-center space-y-4 pb-8">
             <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-400 to-green-400 rounded-full flex items-center justify-center shadow-lg ring-2 ring-white/10">
@@ -90,7 +90,7 @@ const LoginComponent = () => {
                   type="email"
                   autoComplete="off"
                   placeholder="seuemail@email.com"
-                  {...register('email')}
+                  {...register("email")}
                   disabled={loading}
                   className="h-12 bg-gray-900/80 border border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-400 focus:ring-blue-400/30"
                 />
@@ -106,9 +106,9 @@ const LoginComponent = () => {
                 </Label>
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="Senha"
-                  {...register('password')}
+                  {...register("password")}
                   disabled={loading}
                   className="h-12 bg-gray-900/80 border border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-400 focus:ring-blue-400/30"
                 />
@@ -120,7 +120,7 @@ const LoginComponent = () => {
                 disabled={loading}
                 className="w-full h-12 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
               >
-                {loading ? <Spinner /> : 'Login'}
+                {loading ? <Spinner /> : "Login"}
               </Button>
               {errors.password && (
                 <p className="text-red-600 text-sm mt-1">
@@ -135,7 +135,7 @@ const LoginComponent = () => {
               <Button
                 variant="ghost"
                 className="w-full h-11 text-white bg-gradient-to-r hover:from-blue-600 hover:to-green-600 transition-all duration-200 cursor-pointer"
-                onClick={() => console.log('Redirect to register')}
+                onClick={() => console.log("Redirect to register")}
               >
                 <Trophy className="w-4 h-4 mr-2 text-yellow-400" />
                 Criar nova conta
@@ -144,7 +144,7 @@ const LoginComponent = () => {
               <Button
                 variant="ghost"
                 className="w-full text-sm text-gray-400 bg-gradient-to-r hover:from-blue-600 hover:to-green-600 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                onClick={() => console.log('Redirect to forgot password')}
+                onClick={() => console.log("Redirect to forgot password")}
               >
                 Esqueceu sua senha?
               </Button>
