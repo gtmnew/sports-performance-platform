@@ -3,20 +3,16 @@ import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 
 export default class DashboardController {
-  /**
-   Returns system-wide aggregated metrics for the dashboard (cached 5 minutes)
-   */
-  public async getOverviewDashboardMetrics({ response }: HttpContext) {
-    const cacheKey = 'dashboard:overview'
+  public async getOverviewDashboardMetrics({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `dashboard:overview:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
         return response.header('X-Cache', 'HIT').json(JSON.parse(cached))
       }
-    } catch (error) {
-      console.warn('Cache read error:', error)
-    }
+    } catch (error) {}
 
     try {
       const [
@@ -26,19 +22,35 @@ export default class DashboardController {
         criticalFatigueAthletes,
         avgVo2,
       ] = await Promise.all([
-        db.from('athletes').count('* as total').first(),
-        db.from('athletes').where('is_active', true).count('* as total').first(),
-        db.from('athletes').whereIn('risk_level', ['high', 'critical']).count('* as total').first(),
+        db.from('athletes').where('user_id', userId).count('* as total').first(),
+        db
+          .from('athletes')
+          .where('user_id', userId)
+          .where('is_active', true)
+          .count('* as total')
+          .first(),
+        db
+          .from('athletes')
+          .where('user_id', userId)
+          .whereIn('risk_level', ['high', 'critical'])
+          .count('* as total')
+          .first(),
         db
           .from('vital_signs')
           .join('athletes', 'athletes.id', 'vital_signs.athlete_id')
+          .where('athletes.user_id', userId)
           .where('vital_signs.fatigue_score', '>', 85)
           .where('vital_signs.created_at', '>', new Date(Date.now() - 30 * 60 * 1000))
           .countDistinct('athletes.id as total')
           .first(),
-        db.from('vital_signs').avg('vo2_max as avg_vo2').whereNotNull('vo2_max').first(),
+        db
+          .from('vital_signs')
+          .join('athletes', 'athletes.id', 'vital_signs.athlete_id')
+          .where('athletes.user_id', userId)
+          .avg('vo2_max as avg_vo2')
+          .whereNotNull('vo2_max')
+          .first(),
       ])
-
       const data = {
         total_athletes: Number(totalAthletesResult?.total || 0),
         active_athletes: Number(activeAthletesResult?.total || 0),
@@ -50,13 +62,10 @@ export default class DashboardController {
 
       try {
         await redis.setex(cacheKey, 300, JSON.stringify(data))
-      } catch (error) {
-        console.warn('Cache write error:', error)
-      }
+      } catch (error) {}
 
       return response.header('X-Cache', 'MISS').json(data)
     } catch (error) {
-      console.error('Dashboard metrics error:', error)
       return response.status(500).json({
         error: 'Failed to fetch dashboard metrics',
         message: 'An error occurred while retrieving dashboard data',
@@ -64,44 +73,42 @@ export default class DashboardController {
     }
   }
 
-  /**
-   Returns trending metrics over the last 7 days
-   */
-  public async getTrendingMetrics({ response }: HttpContext) {
-    const cacheKey = 'dashboard:trends'
+  public async getTrendingMetrics({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `dashboard:trends:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
         return response.header('X-Cache', 'HIT').json(JSON.parse(cached))
       }
-    } catch (error) {
-      console.warn('Cache read error:', error)
-    }
+    } catch (error) {}
 
     try {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-      // Get daily metrics for the last 7 days
       const dailyMetrics = await db
         .from('vital_signs')
-        .select(db.raw('DATE(created_at) as date'))
-        .avg('fatigue_score as avg_fatigue')
-        .avg('vo2_max as avg_vo2')
-        .avg('heart_rate as avg_heart_rate')
-        .count('* as total_measurements')
-        .where('created_at', '>=', sevenDaysAgo)
-        .groupByRaw('DATE(created_at)')
-        .orderByRaw('DATE(created_at)')
+        .join('athletes', 'athletes.id', 'vital_signs.athlete_id')
+        .select(db.raw('DATE(vital_signs.created_at) as date'))
+        .avg('vital_signs.fatigue_score as avg_fatigue')
+        .avg('vital_signs.vo2_max as avg_vo2')
+        .avg('vital_signs.heart_rate as avg_heart_rate')
+        .count('vital_signs.id as total_measurements')
+        .where('athletes.user_id', userId)
+        .where('vital_signs.created_at', '>=', sevenDaysAgo)
+        .groupByRaw('DATE(vital_signs.created_at)')
+        .orderByRaw('DATE(vital_signs.created_at)')
 
-      // Get injury trends
       const injuryTrends = await db
         .from('injury_records')
-        .select(db.raw('DATE(created_at) as date'))
-        .count('* as new_injuries')
-        .where('created_at', '>=', sevenDaysAgo)
-        .groupByRaw('DATE(created_at)')
-        .orderByRaw('DATE(created_at)')
+        .join('athletes', 'athletes.id', 'injury_records.athlete_id')
+        .select(db.raw('DATE(injury_records.created_at) as date'))
+        .count('injury_records.id as new_injuries')
+        .where('athletes.user_id', userId)
+        .where('injury_records.created_at', '>=', sevenDaysAgo)
+        .groupByRaw('DATE(injury_records.created_at)')
+        .orderByRaw('DATE(injury_records.created_at)')
 
       const data = {
         daily_metrics: dailyMetrics.map((metric) => ({
@@ -120,14 +127,11 @@ export default class DashboardController {
       }
 
       try {
-        await redis.setex(cacheKey, 1800, JSON.stringify(data)) // 30 min cache
-      } catch (error) {
-        console.warn('Cache write error:', error)
-      }
+        await redis.setex(cacheKey, 1800, JSON.stringify(data))
+      } catch (error) {}
 
       return response.header('X-Cache', 'MISS').json(data)
     } catch (error) {
-      console.error('Trending metrics error:', error)
       return response.status(500).json({
         error: 'Failed to fetch trending metrics',
         message: 'An error occurred while retrieving trend data',
@@ -135,26 +139,21 @@ export default class DashboardController {
     }
   }
 
-  /**
-    Returns critical alerts requiring immediate attention
-   */
-  public async getCriticalAlerts({ response }: HttpContext) {
-    const cacheKey = 'dashboard:alerts'
+  public async getCriticalAlerts({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `dashboard:alerts:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
         return response.header('X-Cache', 'HIT').json(JSON.parse(cached))
       }
-    } catch (error) {
-      console.warn('Cache read error:', error)
-    }
+    } catch (error) {}
 
     try {
       const now = new Date()
       const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000)
 
-      // Critical fatigue athletes
       const criticalFatigueAthletes = await db
         .from('vital_signs')
         .join('athletes', 'athletes.id', 'vital_signs.athlete_id')
@@ -165,21 +164,21 @@ export default class DashboardController {
           'vital_signs.fatigue_score',
           'vital_signs.created_at',
         ])
+        .where('athletes.user_id', userId)
         .where('vital_signs.fatigue_score', '>', 85)
         .where('vital_signs.created_at', '>', thirtyMinutesAgo)
         .orderBy('vital_signs.fatigue_score', 'desc')
 
-      // High risk athletes with recent activity
       const highRiskAthletes = await db
         .from('athletes')
         .leftJoin('vital_signs', 'athletes.id', 'vital_signs.athlete_id')
         .select(['athletes.id', 'athletes.name', 'athletes.position', 'athletes.risk_level'])
+        .where('athletes.user_id', userId)
         .where('athletes.risk_level', 'critical')
         .where('athletes.is_active', true)
         .where('vital_signs.created_at', '>', new Date(now.getTime() - 24 * 60 * 60 * 1000))
         .groupBy(['athletes.id', 'athletes.name', 'athletes.position', 'athletes.risk_level'])
 
-      // Athletes with recent injuries
       const recentInjuries = await db
         .from('injury_records')
         .join('athletes', 'athletes.id', 'injury_records.athlete_id')
@@ -190,6 +189,7 @@ export default class DashboardController {
           'injury_records.injury_type',
           'injury_records.created_at',
         ])
+        .where('athletes.user_id', userId)
         .whereIn('injury_records.status', ['active', 'recovering'])
         .where('injury_records.created_at', '>', new Date(now.getTime() - 24 * 60 * 60 * 1000))
         .orderBy('injury_records.created_at', 'desc')
@@ -227,14 +227,11 @@ export default class DashboardController {
       }
 
       try {
-        await redis.setex(cacheKey, 60, JSON.stringify(data)) // 1 min cache for alerts
-      } catch (error) {
-        console.warn('Cache write error:', error)
-      }
+        await redis.setex(cacheKey, 60, JSON.stringify(data))
+      } catch (error) {}
 
       return response.header('X-Cache', 'MISS').json(data)
     } catch (error) {
-      console.error('Critical alerts error:', error)
       return response.status(500).json({
         error: 'Failed to fetch critical alerts',
         message: 'An error occurred while retrieving alerts',
@@ -242,23 +239,18 @@ export default class DashboardController {
     }
   }
 
-  /**
-   Returns team performance metrics by position/team
-   */
-  public async getTeamPerformance({ response }: HttpContext) {
-    const cacheKey = 'dashboard:team-performance'
+  public async getTeamPerformance({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `dashboard:team-performance:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
         return response.header('X-Cache', 'HIT').json(JSON.parse(cached))
       }
-    } catch (error) {
-      console.warn('Cache read error:', error)
-    }
+    } catch (error) {}
 
     try {
-      // Performance by position
       const performanceByPosition = await db
         .from('athletes')
         .leftJoin('vital_signs', 'athletes.id', 'vital_signs.athlete_id')
@@ -266,11 +258,11 @@ export default class DashboardController {
         .avg('vital_signs.vo2_max as avg_vo2')
         .avg('vital_signs.fatigue_score as avg_fatigue')
         .count('athletes.id as total_athletes')
+        .where('athletes.user_id', userId)
         .where('athletes.is_active', true)
         .where('vital_signs.created_at', '>', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
         .groupBy('athletes.position')
 
-      // Performance by team
       const performanceByTeam = await db
         .from('athletes')
         .leftJoin('vital_signs', 'athletes.id', 'vital_signs.athlete_id')
@@ -278,15 +270,16 @@ export default class DashboardController {
         .avg('vital_signs.vo2_max as avg_vo2')
         .avg('vital_signs.fatigue_score as avg_fatigue')
         .count('athletes.id as total_athletes')
+        .where('athletes.user_id', userId)
         .where('athletes.is_active', true)
         .where('vital_signs.created_at', '>', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
         .groupBy('athletes.team')
 
-      // Risk distribution by position
       const riskByPosition = await db
         .from('athletes')
         .select(['athletes.position', 'athletes.risk_level'])
         .count('* as count')
+        .where('athletes.user_id', userId)
         .where('athletes.is_active', true)
         .groupBy(['athletes.position', 'athletes.risk_level'])
 
@@ -310,14 +303,11 @@ export default class DashboardController {
       }
 
       try {
-        await redis.setex(cacheKey, 600, JSON.stringify(data)) // 10 min cache
-      } catch (error) {
-        console.warn('Cache write error:', error)
-      }
+        await redis.setex(cacheKey, 600, JSON.stringify(data))
+      } catch (error) {}
 
       return response.header('X-Cache', 'MISS').json(data)
     } catch (error) {
-      console.error('Team performance error:', error)
       return response.status(500).json({
         error: 'Failed to fetch team performance',
         message: 'An error occurred while retrieving team data',
@@ -325,7 +315,6 @@ export default class DashboardController {
     }
   }
 
-  // Private helper methods
   private getTimeAgo(date: Date): string {
     const now = new Date()
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
@@ -333,7 +322,6 @@ export default class DashboardController {
     if (diffInMinutes < 60) {
       return `${diffInMinutes} min ago`
     } else if (diffInMinutes < 1440) {
-      // 24 hours
       return `${Math.floor(diffInMinutes / 60)} h ago`
     } else {
       return `${Math.floor(diffInMinutes / 1440)} days ago`
@@ -341,9 +329,8 @@ export default class DashboardController {
   }
 
   private calculatePerformanceScore(vo2: number, fatigue: number): number {
-    // Simple performance score calculation (0-100)
-    const vo2Score = Math.min((vo2 / 60) * 50, 50) // Max 50 points for VO2
-    const fatigueScore = Math.max(50 - (fatigue / 100) * 50, 0) // Max 50 points for low fatigue
+    const vo2Score = Math.min((vo2 / 60) * 50, 50)
+    const fatigueScore = Math.max(50 - (fatigue / 100) * 50, 0)
     return Math.round(vo2Score + fatigueScore)
   }
 

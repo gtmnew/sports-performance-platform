@@ -1,4 +1,4 @@
-import { Athlete } from "@/app/types/AthleteType";
+import { Athlete } from '@/app/types/AthleteType';
 import {
   AthleteProfile,
   CriticalAlerts,
@@ -6,22 +6,22 @@ import {
   OverviewMetrics,
   TeamPerformanceData,
   TrendingMetrics,
-} from "@/app/types/dashboard/DashboardTypes";
-import { VitalSign } from "@/app/types/VitalSignType";
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+} from '@/app/types/dashboard/DashboardTypes';
+import { VitalSign } from '@/app/types/VitalSignType';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 class DashboardAPI {
   private api: AxiosInstance;
 
   constructor(
-    baseURL: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333"
+    baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
   ) {
     this.api = axios.create({
       baseURL: `${baseURL}/api`, // Adiciona o prefixo /api conforme suas rotas
       timeout: 30000, // 30 segundos de timeout
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
 
@@ -30,8 +30,8 @@ class DashboardAPI {
       (config) => {
         // Adiciona token de autenticação se existir no localStorage
         const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("auth_token")
+          typeof window !== 'undefined'
+            ? localStorage.getItem('auth_token')
             : null;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -47,7 +47,7 @@ class DashboardAPI {
         return config;
       },
       (error) => {
-        console.error("❌ Erro no interceptor de request:", error);
+        console.error('❌ Erro no interceptor de request:', error);
         return Promise.reject(error);
       }
     );
@@ -58,7 +58,7 @@ class DashboardAPI {
         // Log para debug (remover em produção)
         console.log(`✅ Resposta recebida de: ${response.config.url}`, {
           status: response.status,
-          cache: response.headers["x-cache"] || "N/A",
+          cache: response.headers['x-cache'] || 'N/A',
         });
 
         return response;
@@ -67,13 +67,13 @@ class DashboardAPI {
         // Tratamento de erros centralizados
         if (error.response?.status === 401) {
           // Token inválido/expirado - redirecionar para login
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("auth_token");
-            window.location.href = "/login";
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login';
           }
         }
 
-        console.error("❌ Erro na resposta da API:", {
+        console.error('❌ Erro na resposta da API:', {
           status: error.response?.status,
           message: error.response?.data?.message || error.message,
           url: error.config?.url,
@@ -95,11 +95,11 @@ class DashboardAPI {
   async getOverviewMetrics(): Promise<OverviewMetrics> {
     try {
       const response: AxiosResponse<OverviewMetrics> = await this.api.get(
-        "/dashboard/overview"
+        '/dashboard/overview'
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao buscar métricas gerais do dashboard");
+      throw new Error('Erro ao buscar métricas gerais do dashboard');
     }
   }
 
@@ -110,11 +110,11 @@ class DashboardAPI {
   async getTrendingMetrics(): Promise<TrendingMetrics> {
     try {
       const response: AxiosResponse<TrendingMetrics> = await this.api.get(
-        "/dashboard/trends"
+        '/dashboard/trends'
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao buscar métricas de tendência");
+      throw new Error('Erro ao buscar métricas de tendência');
     }
   }
 
@@ -125,11 +125,11 @@ class DashboardAPI {
   async getCriticalAlerts(): Promise<CriticalAlerts> {
     try {
       const response: AxiosResponse<CriticalAlerts> = await this.api.get(
-        "/dashboard/alerts"
+        '/dashboard/alerts'
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao buscar alertas críticos");
+      throw new Error('Erro ao buscar alertas críticos');
     }
   }
 
@@ -140,11 +140,11 @@ class DashboardAPI {
   async getTeamPerformance(): Promise<TeamPerformanceData> {
     try {
       const response: AxiosResponse<TeamPerformanceData> = await this.api.get(
-        "/dashboard/team-performance"
+        '/dashboard/team-performance'
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao buscar performance das equipes");
+      throw new Error('Erro ao buscar performance das equipes');
     }
   }
 
@@ -159,11 +159,11 @@ class DashboardAPI {
   async getAthletes(): Promise<Athlete[]> {
     try {
       const response: AxiosResponse<Athlete[]> = await this.api.get(
-        "/athletes"
+        '/athletes'
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao buscar lista de atletas");
+      throw new Error('Erro ao buscar lista de atletas');
     }
   }
 
@@ -174,12 +174,12 @@ class DashboardAPI {
   async createAthlete(athleteData: Partial<Athlete>): Promise<Athlete> {
     try {
       const response: AxiosResponse<Athlete> = await this.api.post(
-        "/athletes",
+        '/athletes',
         athleteData
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao criar atleta");
+      throw new Error('Erro ao criar atleta');
     }
   }
 
@@ -241,12 +241,12 @@ class DashboardAPI {
   async createVitalSigns(vitalData: Partial<VitalSign>): Promise<VitalSign> {
     try {
       const response: AxiosResponse<VitalSign> = await this.api.post(
-        "/vital-signs",
+        '/vital-signs',
         vitalData
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao registrar sinais vitais");
+      throw new Error('Erro ao registrar sinais vitais');
     }
   }
 
@@ -263,12 +263,12 @@ class DashboardAPI {
   ): Promise<InjuryRecord> {
     try {
       const response: AxiosResponse<InjuryRecord> = await this.api.post(
-        "/injury-records",
+        '/injury-records',
         injuryData
       );
       return response.data;
     } catch (error) {
-      throw new Error("Erro ao registrar lesão");
+      throw new Error('Erro ao registrar lesão');
     }
   }
 
@@ -296,7 +296,7 @@ class DashboardAPI {
         teamPerformance,
       };
     } catch (error) {
-      throw new Error("Erro ao buscar dados completos do dashboard");
+      throw new Error('Erro ao buscar dados completos do dashboard');
     }
   }
 }

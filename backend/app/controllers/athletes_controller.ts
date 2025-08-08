@@ -7,7 +7,7 @@ import redis from '@adonisjs/redis/services/main'
 import vine from '@vinejs/vine'
 
 export default class AthletesController {
-  public async store({ response, request }: HttpContext) {
+  public async store({ auth, response, request }: HttpContext) {
     const data = request.only([
       'name',
       'position',
@@ -23,7 +23,10 @@ export default class AthletesController {
 
     const payload = await vine.validate({ schema: CreateAthleteSchema, data })
 
-    const athlete = await AthleteService.create(payload)
+    const athlete = await AthleteService.create({
+      ...payload,
+      userId: auth.user!.id,
+    })
 
     return response.status(201).json({
       status: 201,
@@ -32,8 +35,20 @@ export default class AthletesController {
     })
   }
 
-  public async listWithCache({ response }: HttpContext) {
-    const cacheKey = 'athletes:list'
+  public async getAllAthletes({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const athletes = await Athlete.query().where('userId', userId).orderBy('id', 'asc')
+    const total = athletes.length
+
+    return response.json({
+      athletes,
+      total,
+    })
+  }
+
+  public async listWithCache({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athletes:list:${userId}`
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
@@ -46,6 +61,7 @@ export default class AthletesController {
     const athletes = await Athlete.query()
       .select(['id', 'name', 'position', 'team', 'riskLevel', 'isActive'])
       .where('isActive', true)
+      .where('userId', userId)
       .preload('vitalSigns', (vitalSignQuery) => {
         vitalSignQuery.select([
           'id',
@@ -92,8 +108,9 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async showAthleteProfileWithInjuryRisk({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:profile`
+  public async showAthleteProfileWithInjuryRisk({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athlete:${params.id}:profile:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -104,6 +121,7 @@ export default class AthletesController {
 
     const athlete = await Athlete.query()
       .where('id', params.id)
+      .where('userId', userId)
       .preload('injuryRecords', (query) => {
         query.whereIn('status', ['active', 'recovering'])
       })
@@ -123,8 +141,9 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async getRecentVitalSigns({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:vitals`
+  public async getRecentVitalSigns({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athlete:${params.id}:vitals:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -133,8 +152,13 @@ export default class AthletesController {
       }
     } catch (error) {}
 
+    const athlete = await Athlete.query()
+      .where('id', params.id)
+      .where('userId', userId)
+      .firstOrFail()
+
     const vitals = await VitalSign.query()
-      .where('athleteId', params.id)
+      .where('athleteId', athlete.id)
       .orderBy('createdAt', 'desc')
       .limit(1)
       .first()
@@ -156,8 +180,9 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async analyzeBiomechanicalProfile({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:biomechanics`
+  public async analyzeBiomechanicalProfile({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athlete:${params.id}:biomechanics:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -166,7 +191,10 @@ export default class AthletesController {
       }
     } catch (error) {}
 
-    const athlete = await Athlete.findOrFail(params.id)
+    const athlete = await Athlete.query()
+      .where('id', params.id)
+      .where('userId', userId)
+      .firstOrFail()
     const profile = JSON.parse(athlete.biomechanicsProfile || '{}')
 
     const analysis = {
@@ -187,7 +215,7 @@ export default class AthletesController {
 
     return response.header('X-Cache', 'MISS').json(analysis)
   }
-  // Privates Functions
+
   private evaluateAthleteCondition(vitals: VitalSign): string {
     if (vitals.fatigueScore > 80) return 'critical'
     if (vitals.heartRate > 180 || vitals.fatigueScore > 60) return 'warning'

@@ -3,6 +3,7 @@ import { RiskLevelEnum } from '../enums/risk_level_enum.js'
 
 export class AthleteService {
   static async create(payload: {
+    userId: number
     name: string
     position: string
     age: number
@@ -17,12 +18,14 @@ export class AthleteService {
     const existingAthlete = await Athlete.query()
       .where('name', payload.name)
       .andWhere('team', payload.team)
+      .andWhere('userId', payload.userId)
       .first()
     if (existingAthlete) {
       throw new Error('Athlete already exists')
     }
 
     const athlete = new Athlete()
+    athlete.userId = payload.userId
     athlete.name = payload.name
     athlete.position = payload.position
     athlete.age = payload.age

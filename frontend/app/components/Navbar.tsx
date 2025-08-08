@@ -3,6 +3,7 @@
 import { LogOut, Moon, Settings, Sun, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+import nookies from 'nookies';
 import { useTheme } from 'next-themes';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -14,9 +15,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { showToast } from '@/utils/show_toaster';
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const handleLogout = () => {
+    nookies.destroy(null, 'auth_token');
+    showToast('Logout realizado com sucesso!', 'success');
+    router.replace('/');
+  };
 
   return (
     <nav className="p-4 flex items-center justify-between">
@@ -60,7 +69,11 @@ const Navbar = () => {
             <DropdownMenuItem className="cursor-pointer">
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" /> Settings
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" className="cursor-pointer">
+            <DropdownMenuItem
+              variant="destructive"
+              className="cursor-pointer"
+              onClick={handleLogout}
+            >
               <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
               Logout
             </DropdownMenuItem>

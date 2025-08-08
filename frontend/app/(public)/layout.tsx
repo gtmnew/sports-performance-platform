@@ -1,13 +1,11 @@
-import { ThemeProvider } from 'next-themes';
-
-export default async function PublicRootLayout({
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <main className="w-full">
-      <div className="px-4">{children}</div>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-green-400 to-orange-400">
+      <div className="w-full max-w-md">{children}</div>
     </main>
   );
 }
