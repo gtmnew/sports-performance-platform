@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     container_name: back-spp
@@ -26,7 +24,7 @@ services:
     container_name: redis-cache
     restart: always
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --requirepass "myStrongPassword"
     volumes:
       - redisdata:/data
@@ -38,7 +36,7 @@ services:
     container_name: redis-ui
     restart: always
     ports:
-      - "5540:5540"
+      - '5540:5540'
     volumes:
       - redisinsight_data:/data
     networks:
