@@ -1,121 +1,102 @@
-import api from "@/lib/login/login_api";
-import { getCookie } from "@/utils/get_cookie";
-import { useCallback, useEffect, useState } from "react";
+import api from '@/lib/api/api';
+import { getCookie } from '@/utils/get_cookie';
+import { useQuery } from '@tanstack/react-query';
 
-type Overview = {
-  total_athletes: number;
-  active_athletes: number;
-  high_risk_athletes: number;
-  critical_fatigue_athletes: number;
-  avg_vo2_max: number;
-  updated_at: string;
-};
+async function fetchOverview() {
+  const token = getCookie('auth_token');
+  if (!token) throw new Error('Token não encontrado');
+  const res = await api.get('/api/dashboard/overview', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
 
-type CriticalAlert = {
-  athlete_id: number;
-  name: string;
-  position: string;
-  alert_type: "critical_fatigue" | "high_risk" | "recent_injury";
-  severity: "high" | "medium" | "low";
-  time_ago?: string;
-  fatigue_score?: number;
-  risk_level?: string;
-  injury_type?: string;
-};
+async function fetchAlerts() {
+  const token = getCookie('auth_token');
+  if (!token) throw new Error('Token não encontrado');
+  const res = await api.get('/api/dashboard/alerts', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
 
-type CriticalAlerts = {
-  critical_fatigue: CriticalAlert[];
-  high_risk_active: CriticalAlert[];
-  recent_injuries: CriticalAlert[];
-  total_alerts: number;
-  updated_at: string;
-};
+async function fetchTeamPerformance() {
+  const token = getCookie('auth_token');
+  if (!token) throw new Error('Token não encontrado');
+  const res = await api.get('/api/dashboard/team-performance', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
 
-type DashboardData = {
-  overview: Overview | null;
-  alerts: CriticalAlerts | null;
-};
+async function fetchTrends() {
+  const token = getCookie('auth_token');
+  if (!token) throw new Error('Token não encontrado');
+  const res = await api.get('/api/dashboard/trends', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
 
 export function useDashboard() {
-  const [overview, setOverview] = useState<Overview | null>(null);
-  const [alerts, setAlerts] = useState<CriticalAlerts | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [alertsLoading, setAlertsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [alertsError, setAlertsError] = useState<string | null>(null);
+  const overviewQuery = useQuery({
+    queryKey: ['dashboard', 'overview'],
+    queryFn: fetchOverview,
+    enabled: !!getCookie('auth_token'),
+  });
 
-  const fetchOverview = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = getCookie("auth_token");
-      if (!token) throw new Error("Token não encontrado");
-      const res = await api.get("/api/dashboard/overview", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const alertsQuery = useQuery({
+    queryKey: ['dashboard', 'alerts'],
+    queryFn: fetchAlerts,
+    refetchInterval: 30000,
+    enabled: !!getCookie('auth_token'),
+  });
 
-      setOverview(res.data);
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || err.message || "Erro desconhecido";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const teamPerformanceQuery = useQuery({
+    queryKey: ['dashboard', 'teamPerformance'],
+    queryFn: fetchTeamPerformance,
+    enabled: !!getCookie('auth_token'),
+  });
 
-  const fetchAlerts = useCallback(async () => {
-    setAlertsLoading(true);
-    setAlertsError(null);
-    try {
-      const token = getCookie("auth_token");
-      if (!token) throw new Error("Token não encontrado");
-      const res = await api.get("/api/dashboard/alerts", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const trendsQuery = useQuery({
+    queryKey: ['dashboard', 'trends'],
+    queryFn: fetchTrends,
+    enabled: !!getCookie('auth_token'),
+  });
 
-      setAlerts(res.data);
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        "Erro ao carregar alertas";
-      setAlertsError(errorMessage);
-    } finally {
-      setAlertsLoading(false);
-    }
-  }, []);
-
-  const refetch = useCallback(async () => {
-    await Promise.all([fetchOverview(), fetchAlerts()]);
-  }, [fetchOverview, fetchAlerts]);
-
-  useEffect(() => {
-    fetchOverview();
-    fetchAlerts();
-
-    const alertsInterval = setInterval(fetchAlerts, 30000);
-    const overviewInterval = setInterval(fetchOverview, 300000);
-
-    return () => {
-      clearInterval(alertsInterval);
-      clearInterval(overviewInterval);
-    };
-  }, [fetchOverview, fetchAlerts]);
+  const refetch = () =>
+    Promise.all([
+      overviewQuery.refetch(),
+      alertsQuery.refetch(),
+      teamPerformanceQuery.refetch(),
+      trendsQuery.refetch(),
+    ]);
 
   return {
-    overview,
-    alerts,
-    loading,
-    alertsLoading,
-    error,
-    alertsError,
+    overview: overviewQuery.data,
+    alerts: alertsQuery.data,
+    teamPerformance: teamPerformanceQuery.data,
+    trending: trendsQuery.data,
+    loading:
+      overviewQuery.isLoading ||
+      alertsQuery.isLoading ||
+      teamPerformanceQuery.isLoading ||
+      trendsQuery.isLoading,
+    alertsLoading: alertsQuery.isLoading,
+    performanceLoading: teamPerformanceQuery.isLoading,
+    trendsLoading: trendsQuery.isLoading,
+    error:
+      overviewQuery.error ||
+      alertsQuery.error ||
+      teamPerformanceQuery.error ||
+      trendsQuery.error,
+    alertsError: alertsQuery.error,
+    performanceError: teamPerformanceQuery.error,
+    trendsError: trendsQuery.error,
     refetch,
-    refetchOverview: fetchOverview,
-    refetchAlerts: fetchAlerts,
+    refetchOverview: overviewQuery.refetch,
+    refetchAlerts: alertsQuery.refetch,
+    refetchTeamPerformance: teamPerformanceQuery.refetch,
+    refetchTrends: trendsQuery.refetch,
   };
 }

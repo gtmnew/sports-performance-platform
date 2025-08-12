@@ -12,9 +12,6 @@ export function middleware(request: NextRequest) {
   const authToken = request.cookies.get('auth_token')?.value;
   const path = request.nextUrl.pathname;
   const publicRoute = publicRoutes.find((route) => route.path === path);
-  console.log(`🔍 Path: ${path} | Token: ${authToken ? 'EXISTS' : 'NONE'}`);
-  console.log(`📍 Public Route:`, publicRoute);
-  console.log(`🍪 All Cookies:`, request.cookies.getAll());
 
   if (!authToken && publicRoute) {
     return NextResponse.next();

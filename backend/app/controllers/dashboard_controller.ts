@@ -3,6 +3,32 @@ import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 
 export default class DashboardController {
+  public static async invalidateDashboardCaches(userId: number): Promise<void> {
+    const cacheKeys = [
+      `dashboard:overview:${userId}`,
+      `dashboard:trends:${userId}`,
+      `dashboard:alerts:${userId}`,
+      `dashboard:team-performance:${userId}`,
+    ]
+
+    try {
+      console.log(`🗑️ Invalidando caches do dashboard para usuário ${userId}`)
+
+      for (const cacheKey of cacheKeys) {
+        try {
+          await redis.del(cacheKey)
+          console.log(`✅ Cache invalidado: ${cacheKey}`)
+        } catch (error) {
+          console.error(`❌ Erro ao invalidar cache ${cacheKey}:`, error)
+        }
+      }
+
+      console.log(`🎯 Todos os caches do dashboard invalidados para usuário ${userId}`)
+    } catch (error) {
+      console.error('❌ Erro geral ao invalidar caches do dashboard:', error)
+    }
+  }
+
   public async getOverviewDashboardMetrics({ auth, response }: HttpContext) {
     const userId = auth.user!.id
     const cacheKey = `dashboard:overview:${userId}`

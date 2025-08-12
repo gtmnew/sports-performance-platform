@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import React from "react";
-import AthleteModalForm from "./modals/AthleteModalForm";
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import AthleteModalForm from './modals/AthleteModalForm';
 
 const HeaderAthletes = ({ athletesCount }: { athletesCount: number }) => {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 bg-zinc-800">

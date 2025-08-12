@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { LoginForm } from '@/app/schemas/login_schema';
-import api from '../login/login_api';
+import api from '../api/api';
 
 export async function loginAction(data: LoginForm) {
   try {

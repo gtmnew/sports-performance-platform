@@ -5,9 +5,13 @@ import { CreateAthleteSchema } from '#validators/create_athlete_schema'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import vine from '@vinejs/vine'
+import DashboardController from './dashboard_controller.js'
 
 export default class AthletesController {
-  public async store({ auth, response, request }: HttpContext) {
+  public async create({ auth, response, request }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athletes:list:${userId}`
+
     const data = request.only([
       'name',
       'position',
@@ -25,8 +29,17 @@ export default class AthletesController {
 
     const athlete = await AthleteService.create({
       ...payload,
+      biomechanicsProfile: JSON.stringify(payload.biomechanicsProfile),
       userId: auth.user!.id,
     })
+
+    try {
+      await redis.del(cacheKey)
+      console.log(`🗑️ Cache da lista de atletas invalidado para usuário ${userId}`)
+      await DashboardController.invalidateDashboardCaches(userId)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache:', error)
+    }
 
     return response.status(201).json({
       status: 201,
@@ -35,20 +48,10 @@ export default class AthletesController {
     })
   }
 
-  public async getAllAthletes({ auth, response }: HttpContext) {
-    const userId = auth.user!.id
-    const athletes = await Athlete.query().where('userId', userId).orderBy('id', 'asc')
-    const total = athletes.length
-
-    return response.json({
-      athletes,
-      total,
-    })
-  }
-
   public async listWithCache({ auth, response }: HttpContext) {
     const userId = auth.user!.id
     const cacheKey = `athletes:list:${userId}`
+
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
@@ -59,7 +62,17 @@ export default class AthletesController {
     }
 
     const athletes = await Athlete.query()
-      .select(['id', 'name', 'position', 'team', 'riskLevel', 'isActive'])
+      .select([
+        'id',
+        'name',
+        'position',
+        'team',
+        'age',
+        'height',
+        'weight',
+        'riskLevel',
+        'isActive',
+      ])
       .where('isActive', true)
       .where('userId', userId)
       .preload('vitalSigns', (vitalSignQuery) => {
@@ -110,7 +123,8 @@ export default class AthletesController {
 
   public async showAthleteProfileWithInjuryRisk({ auth, params, response }: HttpContext) {
     const userId = auth.user!.id
-    const cacheKey = `athlete:${params.id}:profile:${userId}`
+    const athleteId = params.id
+    const cacheKey = `athlete:${athleteId}:profile:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -120,11 +134,22 @@ export default class AthletesController {
     } catch (error) {}
 
     const athlete = await Athlete.query()
-      .where('id', params.id)
+      .select([
+        'id',
+        'name',
+        'position',
+        'team',
+        'age',
+        'height',
+        'weight',
+        'riskLevel',
+        'isActive',
+        'userId',
+      ])
+      .where('id', athleteId)
       .where('userId', userId)
-      .preload('injuryRecords', (query) => {
-        query.whereIn('status', ['active', 'recovering'])
-      })
+      .preload('vitalSigns')
+      .preload('injuryRecords')
       .firstOrFail()
 
     const injuryRisk = athlete.calculateInjuryRisk()

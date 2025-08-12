@@ -23,9 +23,8 @@ router
 
     router
       .group(() => {
+        router.post('/', [AthletesController, 'create'])
         router.get('/', [AthletesController, 'listWithCache'])
-        router.get('/all', [AthletesController, 'getAllAthletes'])
-        router.post('/', [AthletesController, 'store'])
         router.get('/:id/profile', [AthletesController, 'showAthleteProfileWithInjuryRisk'])
         router.get('/:id/vitals', [AthletesController, 'getRecentVitalSigns'])
         router.get('/:id/biomechanics', [AthletesController, 'analyzeBiomechanicalProfile'])
@@ -34,18 +33,13 @@ router
 
     router
       .group(() => {
-        router.post('/', [VitalSignsController, 'store'])
-        // router.get('/athlete/:athleteId', [VitalSignsController, 'getByAthlete'])
-        // router.get('/athlete/:athleteId/period', [VitalSignsController, 'getByPeriod'])
+        router.post('/', [VitalSignsController, 'create'])
       })
       .prefix('/vital-signs')
 
     router
       .group(() => {
-        router.post('/', [InjuryRecordsController, 'createInjuryRecord'])
-        // router.get('/athlete/:athleteId', [InjuryRecordsController, 'getByAthlete'])
-        // router.patch('/:id/status', [InjuryRecordsController, 'updateStatus'])
-        // router.get('/active', [InjuryRecordsController, 'getActiveInjuries'])
+        router.post('/', [InjuryRecordsController, 'create'])
       })
       .prefix('/injury-records')
   })

@@ -1,34 +1,28 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import {
-  Activity,
-  AlertTriangle,
-  Check,
-  Plus,
-  RefreshCw,
-  TrendingUp,
-} from 'lucide-react';
+import { Activity, AlertTriangle, Check, TrendingUp } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { InjuryRecordPageType } from '../types/InjuryRecordPageType';
-import { mockInjuryRecords } from '@/utils/mockInjuryRecords';
 import { getStatusColor } from '@/utils/getStatusColor';
 import { getSeverityColor } from '@/utils/getSeverityColor';
 import { getStatusText } from '@/utils/getStatusText';
 import { getSeverityText } from '@/utils/getSeverityText';
+import HeaderInjuryRecord from '../components/HeaderInjuryRecord';
+import { useInjuryRecords } from '@/hooks/useInjuryRecord';
+import { FormattedInjuryRecord } from '../types/AthleteType';
 
 const InjuryRecordPage = () => {
-  const [injuries, setInjuries] =
-    useState<InjuryRecordPageType[]>(mockInjuryRecords);
-  const [filteredInjuries, setFilteredInjuries] =
-    useState<InjuryRecordPageType[]>(mockInjuryRecords);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [filteredInjuries, setFilteredInjuries] = useState<
+    FormattedInjuryRecord[]
+  >([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
+  const { data: injuries = [], isLoading, error, refetch } = useInjuryRecords();
 
-  const teams = [...new Set(injuries.map((injury) => injury.team))];
+  const teams = [...new Set(injuries.map((injury) => injury.team))].filter(
+    Boolean
+  );
 
   useEffect(() => {
     let filtered = injuries;
@@ -39,7 +33,7 @@ const InjuryRecordPage = () => {
           injury.athlete_name
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          injury.injury_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          injury.injuryType.toLowerCase().includes(searchTerm.toLowerCase()) ||
           injury.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -69,45 +63,38 @@ const InjuryRecordPage = () => {
     });
   };
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setLoading(false);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-xl">Carregando registros...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-zinc-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <p className="text-xl mb-4">Erro ao carregar registros</p>
+          <button
+            onClick={() => refetch()}
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-zinc-900  text-white">
+    <div className="min-h-screen bg-zinc-900 text-white">
       <div className="">
-        <header className="sticky top-0 z-50 bg-zinc-800">
-          <div className="w-full py-4 px-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
-                  Registros de Lesões
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                  Acompanhe e gerencie as lesões dos atletas
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  className="bg-zinc-600 hover:bg-zinc-700 transition-colors disabled:opacity-50 text-white cursor-pointer"
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-                  />
-                  Atualizar
-                </Button>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white cursor-pointer">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Lesão
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
+        <HeaderInjuryRecord />
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 mt-6">
             {[
@@ -184,10 +171,10 @@ const InjuryRecordPage = () => {
               className="p-2 rounded-md bg-zinc-800 text-white border border-zinc-700"
             >
               <option value="all">Todas Severidades</option>
-              <option value="low">Baixa</option>
-              <option value="medium">Média</option>
-              <option value="high">Alta</option>
-              <option value="critical">Crítica</option>
+              <option value="minor">Leve</option>
+              <option value="moderate">Moderado</option>
+              <option value="severe">Grave</option>
+              <option value="critical">Crítico</option>
             </select>
 
             <select
@@ -220,7 +207,7 @@ const InjuryRecordPage = () => {
                 {filteredInjuries.map((injury) => (
                   <tr key={injury.id} className="border-b border-zinc-700">
                     <td className="py-2 px-3">{injury.athlete_name}</td>
-                    <td className="py-2 px-3">{injury.injury_type}</td>
+                    <td className="py-2 px-3">{injury.injuryType}</td>
                     <td className="py-2 px-3">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getSeverityColor(
@@ -240,14 +227,14 @@ const InjuryRecordPage = () => {
                       </span>
                     </td>
                     <td className="py-2 px-3">
-                      {formatDate(injury.created_at)}
+                      {formatDate(injury.createdAt)}
                     </td>
-                    <td className="py-2 px-3">{injury.days_out}</td>
+                    <td className="py-2 px-3">{injury.daysOut}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filteredInjuries.length === 0 && (
+            {filteredInjuries.length === 0 && !isLoading && (
               <div className="text-center py-6 text-gray-400">
                 Nenhum registro encontrado.
               </div>
