@@ -1,4 +1,4 @@
-import InjuryRecordsPage from '../pages/InjuryRecordPage';
+import InjuryRecordsPage from '../../pages/InjuryRecordPage';
 
 const InjuryRecords = () => {
   return <InjuryRecordsPage />;

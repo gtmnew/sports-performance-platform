@@ -1,8 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import React from 'react';
+import { useState } from 'react';
+import AthleteModalForm from './modals/AthleteModalForm';
 
 const HeaderAthletes = ({ athletesCount }: { athletesCount: number }) => {
+  const [open, setOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 bg-zinc-800">
       <div className="w-full px-6 py-4">
@@ -15,12 +18,17 @@ const HeaderAthletes = ({ athletesCount }: { athletesCount: number }) => {
               {athletesCount} atletas encontrados
             </p>
           </div>
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white cursor-pointer">
+          <Button
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white cursor-pointer"
+            onClick={() => setOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Novo Atleta
           </Button>
         </div>
       </div>
+
+      <AthleteModalForm open={open} onOpenChange={setOpen} />
     </header>
   );
 };

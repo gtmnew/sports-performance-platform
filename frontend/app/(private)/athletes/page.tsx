@@ -1,5 +1,5 @@
+import AthletesPage from '@/app/pages/AthletesPage';
 import React from 'react';
-import AthletesPage from '../pages/AthletesPage';
 
 const Athletes = () => {
   return <AthletesPage />;

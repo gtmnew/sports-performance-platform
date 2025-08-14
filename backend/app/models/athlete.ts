@@ -1,13 +1,17 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import { RiskLevelEnum } from '../enums/risk_level_enum.js'
-import type { HasMany } from '@adonisjs/lucid/types/relations'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import InjuryRecord from './injuryrecord.js'
 import VitalSign from './vitalsign.js'
+import User from './user.js'
 
 export default class Athlete extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
+
+  @column()
+  declare userId: number
 
   @column()
   declare name: string
@@ -50,6 +54,9 @@ export default class Athlete extends BaseModel {
 
   @hasMany(() => InjuryRecord)
   declare injuryRecords: HasMany<typeof InjuryRecord>
+
+  @belongsTo(() => User)
+  declare user: BelongsTo<typeof User>
 
   public calculateInjuryRisk(): number {
     let profile: any = {}

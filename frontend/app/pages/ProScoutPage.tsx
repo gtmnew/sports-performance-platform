@@ -16,7 +16,7 @@ import {
   ThumbsDown,
 } from 'lucide-react';
 
-const ProScoutAIChat = () => {
+const ProScoutPage = () => {
   const [messages, setMessages] = useState([
     {
       id: '1',
@@ -109,7 +109,7 @@ const ProScoutAIChat = () => {
   };
 
   return (
-    <div className="flex h-screen bg-zinc-900 text-white">
+    <div className="flex h-[50rem] bg-zinc-900 text-white rounded-lg mr-4">
       <div
         className={`${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -166,7 +166,7 @@ const ProScoutAIChat = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between p-4 border-b border-zinc-700 bg-zinc-800">
           <div className="flex items-center gap-3">
             <button
@@ -189,7 +189,7 @@ const ProScoutAIChat = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 min-h-0">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -306,4 +306,4 @@ const ProScoutAIChat = () => {
   );
 };
 
-export default ProScoutAIChat;
+export default ProScoutPage;

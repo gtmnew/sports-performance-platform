@@ -5,9 +5,13 @@ import { CreateAthleteSchema } from '#validators/create_athlete_schema'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import vine from '@vinejs/vine'
+import DashboardController from './dashboard_controller.js'
 
 export default class AthletesController {
-  public async store({ response, request }: HttpContext) {
+  public async create({ auth, response, request }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athletes:list:${userId}`
+
     const data = request.only([
       'name',
       'position',
@@ -23,7 +27,19 @@ export default class AthletesController {
 
     const payload = await vine.validate({ schema: CreateAthleteSchema, data })
 
-    const athlete = await AthleteService.create(payload)
+    const athlete = await AthleteService.create({
+      ...payload,
+      biomechanicsProfile: JSON.stringify(payload.biomechanicsProfile),
+      userId: auth.user!.id,
+    })
+
+    try {
+      await redis.del(cacheKey)
+      console.log(`🗑️ Cache da lista de atletas invalidado para usuário ${userId}`)
+      await DashboardController.invalidateDashboardCaches(userId)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache:', error)
+    }
 
     return response.status(201).json({
       status: 201,
@@ -32,8 +48,84 @@ export default class AthletesController {
     })
   }
 
-  public async listWithCache({ response }: HttpContext) {
-    const cacheKey = 'athletes:list'
+  public async update({ auth, params, response, request }: HttpContext) {
+    const userId = auth.user!.id
+    const athleteId = params.id
+    const cacheKey = `athletes:list:${userId}`
+
+    const data = request.only([
+      'name',
+      'position',
+      'age',
+      'height',
+      'weight',
+      'team',
+      'isActive',
+      'riskLevel',
+      'biomechanicsProfile',
+      'currentInjuries',
+    ])
+
+    const payload = await vine.validate({ schema: CreateAthleteSchema, data })
+
+    const athlete = await Athlete.findOrFail(athleteId)
+
+    if (athlete.userId !== userId) {
+      return response.status(403).json({ message: 'Acesso negado' })
+    }
+
+    athlete.merge({
+      ...payload,
+      biomechanicsProfile: JSON.stringify(payload.biomechanicsProfile),
+    })
+
+    await athlete.save()
+
+    try {
+      await redis.del(cacheKey)
+      console.log(`🗑️ Cache da lista de atletas invalidado para usuário ${userId}`)
+      await DashboardController.invalidateDashboardCaches(userId)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache:', error)
+    }
+
+    return response.status(200).json({
+      status: 200,
+      message: 'Athlete updated successfully',
+      athlete,
+    })
+  }
+
+  public async delete({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const athleteId = params.id
+
+    const athlete = await Athlete.findOrFail(athleteId)
+
+    if (athlete.userId !== userId) {
+      return response.status(403).json({ message: 'Acesso negado' })
+    }
+
+    await athlete.delete()
+
+    const listCacheKey = `athletes:list:${userId}`
+    const profileCacheKey = `athlete:${athlete.id}:profile:${userId}`
+
+    try {
+      await Promise.all([redis.del(listCacheKey), redis.del(profileCacheKey)])
+      await DashboardController.invalidateDashboardCaches(userId)
+      console.log(`🗑️ Caches de lista e perfil invalidados após deletar injuryRecord ${athleteId}`)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache após deletar lesão:', error)
+    }
+
+    return response.status(200).json({ status: 200, message: 'Athlete deleted successfully' })
+  }
+
+  public async listWithCache({ auth, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athletes:list:${userId}`
+
     try {
       const cached = await redis.get(cacheKey)
       if (cached) {
@@ -44,8 +136,19 @@ export default class AthletesController {
     }
 
     const athletes = await Athlete.query()
-      .select(['id', 'name', 'position', 'team', 'riskLevel', 'isActive'])
+      .select([
+        'id',
+        'name',
+        'position',
+        'team',
+        'age',
+        'height',
+        'weight',
+        'riskLevel',
+        'isActive',
+      ])
       .where('isActive', true)
+      .where('userId', userId)
       .preload('vitalSigns', (vitalSignQuery) => {
         vitalSignQuery.select([
           'id',
@@ -92,8 +195,10 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async showAthleteProfileWithInjuryRisk({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:profile`
+  public async showAthleteProfileWithInjuryRisk({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const athleteId = params.id
+    const cacheKey = `athlete:${athleteId}:profile:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -103,10 +208,22 @@ export default class AthletesController {
     } catch (error) {}
 
     const athlete = await Athlete.query()
-      .where('id', params.id)
-      .preload('injuryRecords', (query) => {
-        query.whereIn('status', ['active', 'recovering'])
-      })
+      .select([
+        'id',
+        'name',
+        'position',
+        'team',
+        'age',
+        'height',
+        'weight',
+        'riskLevel',
+        'isActive',
+        'userId',
+      ])
+      .where('id', athleteId)
+      .where('userId', userId)
+      .preload('vitalSigns')
+      .preload('injuryRecords')
       .firstOrFail()
 
     const injuryRisk = athlete.calculateInjuryRisk()
@@ -123,8 +240,9 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async getRecentVitalSigns({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:vitals`
+  public async getRecentVitalSigns({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athlete:${params.id}:vitals:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -133,8 +251,13 @@ export default class AthletesController {
       }
     } catch (error) {}
 
+    const athlete = await Athlete.query()
+      .where('id', params.id)
+      .where('userId', userId)
+      .firstOrFail()
+
     const vitals = await VitalSign.query()
-      .where('athleteId', params.id)
+      .where('athleteId', athlete.id)
       .orderBy('createdAt', 'desc')
       .limit(1)
       .first()
@@ -156,8 +279,9 @@ export default class AthletesController {
     return response.header('X-Cache', 'MISS').json(result)
   }
 
-  public async analyzeBiomechanicalProfile({ params, response }: HttpContext) {
-    const cacheKey = `athlete:${params.id}:biomechanics`
+  public async analyzeBiomechanicalProfile({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const cacheKey = `athlete:${params.id}:biomechanics:${userId}`
 
     try {
       const cached = await redis.get(cacheKey)
@@ -166,7 +290,10 @@ export default class AthletesController {
       }
     } catch (error) {}
 
-    const athlete = await Athlete.findOrFail(params.id)
+    const athlete = await Athlete.query()
+      .where('id', params.id)
+      .where('userId', userId)
+      .firstOrFail()
     const profile = JSON.parse(athlete.biomechanicsProfile || '{}')
 
     const analysis = {
@@ -187,7 +314,7 @@ export default class AthletesController {
 
     return response.header('X-Cache', 'MISS').json(analysis)
   }
-  // Privates Functions
+
   private evaluateAthleteCondition(vitals: VitalSign): string {
     if (vitals.fatigueScore > 80) return 'critical'
     if (vitals.heartRate > 180 || vitals.fatigueScore > 60) return 'warning'

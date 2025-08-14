@@ -1,10 +1,10 @@
 export const getSeverityText = (severity: string): string => {
   switch (severity) {
-    case 'low':
+    case 'minor':
       return 'Baixa';
-    case 'medium':
+    case 'moderate':
       return 'Média';
-    case 'high':
+    case 'severe':
       return 'Alta';
     case 'critical':
       return 'Crítica';

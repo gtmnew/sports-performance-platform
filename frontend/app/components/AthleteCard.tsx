@@ -9,7 +9,7 @@ import { getConditionColor } from '@/utils/getConditionColor';
 import { getRiskColor } from '@/utils/getRiskColor';
 import { getConditionFromVitals } from '@/utils/getConditionFromVitals';
 import AthleteDetailsModal from './AthleteDetailsModal';
-import { Athlete } from '../types/AthleteType';
+import { Athlete } from '@/hooks/useAthlete';
 
 interface AthleteCardProps {
   athlete: Athlete;
@@ -21,7 +21,8 @@ const AthleteCard: React.FC<AthleteCardProps> = ({
   onSelectAthlete,
 }) => {
   const condition = getConditionFromVitals(athlete.vitalSigns);
-  const latestVitals = athlete.vitalSigns[0];
+  const latestVitals =
+    athlete.vitalSigns.length > 0 ? athlete.vitalSigns[0] : null;
   const activeInjuries = athlete.injuryRecords.filter(
     (injury) => injury.status === 'active'
   );
@@ -74,7 +75,7 @@ const AthleteCard: React.FC<AthleteCardProps> = ({
               <span className="font-medium text-sm">Condição Atual</span>
               <div className="flex items-center gap-1 text-xs text-slate-400">
                 <Clock className="w-3 h-3" />
-                {new Date(latestVitals.created_at).toLocaleTimeString('pt-BR', {
+                {new Date(latestVitals.createdAt).toLocaleTimeString('pt-BR', {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -85,23 +86,23 @@ const AthleteCard: React.FC<AthleteCardProps> = ({
               <div>
                 <span className="text-slate-400">BPM:</span>
                 <span className="ml-1 font-medium">
-                  {latestVitals.heart_rate}
+                  {latestVitals.heartRate}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400">VO2:</span>
-                <span className="ml-1 font-medium">{latestVitals.vo2_max}</span>
+                <span className="ml-1 font-medium">{latestVitals.vo2Max}</span>
               </div>
               <div>
                 <span className="text-slate-400">Fadiga:</span>
                 <span className="ml-1 font-medium">
-                  {latestVitals.fatigue_score}%
+                  {latestVitals.fatigueScore}%
                 </span>
               </div>
               <div>
                 <span className="text-slate-400">Sono:</span>
                 <span className="ml-1 font-medium">
-                  {latestVitals.sleep_quality}/10
+                  {latestVitals.sleepQuality}/10
                 </span>
               </div>
             </div>
@@ -114,7 +115,7 @@ const AthleteCard: React.FC<AthleteCardProps> = ({
             <AlertDescription className="text-amber-800 dark:text-amber-300">
               <strong>{activeInjuries.length} lesão(ões) ativa(s)</strong>
               <div className="mt-1 text-xs">
-                {activeInjuries[0].injury_type} - {activeInjuries[0].body_part}
+                {activeInjuries[0].injuryType} - {activeInjuries[0].bodyPart}
               </div>
             </AlertDescription>
           </Alert>
