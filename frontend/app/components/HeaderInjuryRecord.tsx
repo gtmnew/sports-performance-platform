@@ -7,13 +7,7 @@ import InjuryRecordModalForm from './modals/InjuryRecordModalForm';
 
 const HeaderInjuryRecord = () => {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setLoading(false);
-  };
   return (
     <div>
       <header className="sticky top-0 z-50 bg-zinc-800">
@@ -27,22 +21,12 @@ const HeaderInjuryRecord = () => {
                 Acompanhe e gerencie as lesões dos atletas
               </p>
             </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleRefresh}
-                disabled={loading}
-                className="bg-zinc-600 hover:bg-zinc-700 transition-colors disabled:opacity-50 text-white cursor-pointer"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-                />
-                Atualizar
-              </Button>
+            <div className="flex gap-2">
               <Button
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white cursor-pointer"
                 onClick={() => setOpen(true)}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4" />
                 Nova Lesão
               </Button>
             </div>

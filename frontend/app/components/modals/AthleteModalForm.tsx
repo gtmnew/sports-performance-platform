@@ -269,6 +269,7 @@ export default function AthleteModalForm({
             type="submit"
             onClick={handleSubmit(onSubmit)}
             disabled={!isValid}
+            className="bg-zinc-500 text-white hover:bg-zinc-700"
           >
             Salvar
           </Button>

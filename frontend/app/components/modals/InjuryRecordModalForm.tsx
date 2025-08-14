@@ -1,3 +1,5 @@
+'use client';
+
 import {
   CreateInjuryRecordFormData,
   createInjuryRecordSchema,
@@ -21,8 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCreateInjuryRecord } from '@/hooks/useCreateInjuryRecord';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 
 type InjuryRecordModalFormProps = {
   open: boolean;
@@ -32,19 +35,29 @@ const InjuryRecordModalForm = ({
   open,
   onOpenChange,
 }: InjuryRecordModalFormProps) => {
+  const { mutateAsync: createInjuryRecord } = useCreateInjuryRecord();
+
   const {
     register,
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CreateInjuryRecordFormData>({
     resolver: zodResolver(createInjuryRecordSchema),
     mode: 'onChange',
   });
 
-  const onSubmit = async () => {
-    console.log('Submited!');
+  const onSubmit = async (data: CreateInjuryRecordFormData) => {
+    try {
+      await createInjuryRecord(data);
+
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Erro ao criar um registro de lesão:', error);
+    }
   };
 
   const handleClose = () => {
@@ -111,33 +124,67 @@ const InjuryRecordModalForm = ({
               )}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="severity">Gravidade</Label>
-              <Controller
-                name="severity"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      id="severity"
-                      className={errors.severity ? 'border-red-500' : ''}
-                    >
-                      <SelectValue placeholder="Selecione o nível de gravidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="minor">Leve</SelectItem>
-                      <SelectItem value="moderate">Moderado</SelectItem>
-                      <SelectItem value="severe">Grave</SelectItem>
-                      <SelectItem value="critical">Gravíssimo</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="flex gap-4 justify-between">
+              <div className="flex-2 grid gap-2">
+                <Label htmlFor="severity">Gravidade</Label>
+                <Controller
+                  name="severity"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="severity"
+                        className={errors.severity ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Selecione o nível de gravidade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minor">Leve</SelectItem>
+                        <SelectItem value="moderate">Moderado</SelectItem>
+                        <SelectItem value="severe">Grave</SelectItem>
+                        <SelectItem value="critical">Gravíssimo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.severity && (
+                  <p className="text-sm text-red-400">
+                    {errors.severity.message}
+                  </p>
                 )}
-              />
-              {errors.severity && (
-                <p className="text-sm text-red-400">
-                  {errors.severity.message}
-                </p>
-              )}
+              </div>
+
+              <div className="flex-1 grid gap-2">
+                <Label htmlFor="status">Status</Label>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="status"
+                        className={errors.status ? 'border-red-500' : ''}
+                      >
+                        <SelectValue placeholder="Selecione o status da lesão" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="recovering">
+                          Em tratamento
+                        </SelectItem>
+                        <SelectItem value="recovered">
+                          Recuperação concluída
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.status && (
+                  <p className="text-sm text-red-400">
+                    {errors.status.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-2">
@@ -157,13 +204,23 @@ const InjuryRecordModalForm = ({
               <Label htmlFor="expectedRecovery">
                 Estimativa de Recuperação
               </Label>
-              <Input
-                id="expectedRecovery"
-                type="number"
-                placeholder="Ex: 12"
-                {...register('expectedRecovery', { valueAsNumber: true })}
-                className={errors.expectedRecovery ? 'border-red-500' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="expectedRecovery"
+                  type="number"
+                  placeholder="Ex: 12"
+                  {...register('expectedRecovery', { valueAsNumber: true })}
+                  className={`pr-16 appearance-none ${
+                    errors.expectedRecovery ? 'border-red-500' : ''
+                  }`}
+                  style={{
+                    MozAppearance: 'textfield',
+                  }}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none select-none text-sm">
+                  em dias
+                </span>
+              </div>
               {errors.expectedRecovery && (
                 <p className="text-sm text-red-400">
                   {errors.expectedRecovery.message}
@@ -175,13 +232,23 @@ const InjuryRecordModalForm = ({
               <Label htmlFor="actualRecovery">
                 Estimativa de Recuperação Atual
               </Label>
-              <Input
-                id="actualRecovery"
-                type="number"
-                placeholder="Ex: 12"
-                {...register('actualRecovery', { valueAsNumber: true })}
-                className={errors.actualRecovery ? 'border-red-500' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="actualRecovery"
+                  type="number"
+                  placeholder="Ex: 12"
+                  {...register('actualRecovery', { valueAsNumber: true })}
+                  className={`pr-16 appearance-none ${
+                    errors.actualRecovery ? 'border-red-500' : ''
+                  }`}
+                  style={{
+                    MozAppearance: 'textfield',
+                  }}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none select-none text-sm">
+                  em dias
+                </span>
+              </div>
               {errors.actualRecovery && (
                 <p className="text-sm text-red-400">
                   {errors.actualRecovery.message}
@@ -205,38 +272,9 @@ const InjuryRecordModalForm = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="status">Gravidade</Label>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      id="status"
-                      className={errors.status ? 'border-red-500' : ''}
-                    >
-                      <SelectValue placeholder="Selecione o status da lesão" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Ativo</SelectItem>
-                      <SelectItem value="recovering">Em tratamento</SelectItem>
-                      <SelectItem value="recovered">
-                        Recuperação concluída
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.status && (
-                <p className="text-sm text-red-400">{errors.status.message}</p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
               <Label htmlFor="injuryDate">Data da Lesão</Label>
               <Input
                 id="injuryDate"
-                placeholder="Ex: 24/03/2023"
                 {...register('injuryDate')}
                 className={errors.injuryDate ? 'border-red-500' : ''}
               />
@@ -251,7 +289,6 @@ const InjuryRecordModalForm = ({
               <Label htmlFor="recoveryDate">Data de Recuperação</Label>
               <Input
                 id="recoveryDate"
-                placeholder="Ex: 31/10/2023"
                 {...register('recoveryDate')}
                 className={errors.recoveryDate ? 'border-red-500' : ''}
               />

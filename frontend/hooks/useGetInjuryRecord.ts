@@ -38,7 +38,7 @@ async function fetchInjuryRecords(): Promise<FormattedInjuryRecord[]> {
   return allInjuryRecords;
 }
 
-export function useInjuryRecords() {
+export function useGetInjuryRecords() {
   return useQuery({
     queryKey: ['injuryRecords'],
     queryFn: fetchInjuryRecords,

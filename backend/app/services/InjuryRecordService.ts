@@ -2,6 +2,7 @@ import InjuryRecord from '#models/injuryrecord'
 import { DateTime } from 'luxon'
 import { SeverityInjuryEnum } from '../enums/severity_injury_enum.js'
 import { StatusInjuryRecordEnum } from '../enums/status_injury_record_enum.js'
+import Athlete from '#models/athlete'
 
 export class InjuryRecordService {
   static async create(payload: {
@@ -35,4 +36,20 @@ export class InjuryRecordService {
 
     return injuryRecord
   }
+
+  // static async update(
+  //   id: number,
+  //   payload: {
+  //     injuryType?: string
+  //     severity?: SeverityInjuryEnum
+  //     actualRecovery?: number
+  //     status?: StatusInjuryRecordEnum
+  //     injuryDate?: Date
+  //   }
+  // ): Promise<InjuryRecord | null> {
+  //   const athlete = Athlete.find(id)
+  //   if(!athlete) return null
+
+  // }
+  // return
 }

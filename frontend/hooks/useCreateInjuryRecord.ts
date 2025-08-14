@@ -12,7 +12,6 @@ async function createInjuryRecord(data: CreateInjuryRecordFormData) {
       Authorization: `Bearer ${token}`,
     },
   });
-  console.log(res.data);
   return res.data;
 }
 

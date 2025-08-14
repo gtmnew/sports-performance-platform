@@ -28,18 +28,24 @@ router
         router.get('/:id/profile', [AthletesController, 'showAthleteProfileWithInjuryRisk'])
         router.get('/:id/vitals', [AthletesController, 'getRecentVitalSigns'])
         router.get('/:id/biomechanics', [AthletesController, 'analyzeBiomechanicalProfile'])
+        router.patch('/:id', [AthletesController, 'update'])
+        router.delete('/:id', [AthletesController, 'delete'])
       })
       .prefix('/athletes')
 
     router
       .group(() => {
         router.post('/', [VitalSignsController, 'create'])
+        router.patch('/:id', [VitalSignsController, 'update'])
+        router.delete('/:id', [VitalSignsController, 'delete'])
       })
       .prefix('/vital-signs')
 
     router
       .group(() => {
         router.post('/', [InjuryRecordsController, 'create'])
+        router.patch('/:id', [InjuryRecordsController, 'update'])
+        router.delete('/:id', [InjuryRecordsController, 'delete'])
       })
       .prefix('/injury-records')
   })

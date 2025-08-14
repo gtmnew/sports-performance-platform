@@ -48,6 +48,80 @@ export default class AthletesController {
     })
   }
 
+  public async update({ auth, params, response, request }: HttpContext) {
+    const userId = auth.user!.id
+    const athleteId = params.id
+    const cacheKey = `athletes:list:${userId}`
+
+    const data = request.only([
+      'name',
+      'position',
+      'age',
+      'height',
+      'weight',
+      'team',
+      'isActive',
+      'riskLevel',
+      'biomechanicsProfile',
+      'currentInjuries',
+    ])
+
+    const payload = await vine.validate({ schema: CreateAthleteSchema, data })
+
+    const athlete = await Athlete.findOrFail(athleteId)
+
+    if (athlete.userId !== userId) {
+      return response.status(403).json({ message: 'Acesso negado' })
+    }
+
+    athlete.merge({
+      ...payload,
+      biomechanicsProfile: JSON.stringify(payload.biomechanicsProfile),
+    })
+
+    await athlete.save()
+
+    try {
+      await redis.del(cacheKey)
+      console.log(`🗑️ Cache da lista de atletas invalidado para usuário ${userId}`)
+      await DashboardController.invalidateDashboardCaches(userId)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache:', error)
+    }
+
+    return response.status(200).json({
+      status: 200,
+      message: 'Athlete updated successfully',
+      athlete,
+    })
+  }
+
+  public async delete({ auth, params, response }: HttpContext) {
+    const userId = auth.user!.id
+    const athleteId = params.id
+
+    const athlete = await Athlete.findOrFail(athleteId)
+
+    if (athlete.userId !== userId) {
+      return response.status(403).json({ message: 'Acesso negado' })
+    }
+
+    await athlete.delete()
+
+    const listCacheKey = `athletes:list:${userId}`
+    const profileCacheKey = `athlete:${athlete.id}:profile:${userId}`
+
+    try {
+      await Promise.all([redis.del(listCacheKey), redis.del(profileCacheKey)])
+      await DashboardController.invalidateDashboardCaches(userId)
+      console.log(`🗑️ Caches de lista e perfil invalidados após deletar injuryRecord ${athleteId}`)
+    } catch (error) {
+      console.error('❌ Erro ao invalidar cache após deletar lesão:', error)
+    }
+
+    return response.status(200).json({ status: 200, message: 'Athlete deleted successfully' })
+  }
+
   public async listWithCache({ auth, response }: HttpContext) {
     const userId = auth.user!.id
     const cacheKey = `athletes:list:${userId}`

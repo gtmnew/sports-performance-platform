@@ -17,14 +17,14 @@ export interface InjuryRecord {
   athleteId: number;
   injuryType: string;
   bodyPart: string;
-  severity: 'minor' | 'moderate' | 'severe' | 'critical';
-  status: 'active' | 'recovering' | 'recovered';
-  injuryDate: string;
-  recoveryDate: string | null;
+  cause: string;
   expectedRecovery: number;
   actualRecovery: number | null;
+  severity: 'minor' | 'moderate' | 'severe' | 'critical';
+  status: 'active' | 'recovering' | 'recovered';
   treatmentProtocol: string;
-  cause: string;
+  injuryDate: string;
+  recoveryDate: string | null;
   createdAt: string;
 }
 
@@ -59,6 +59,6 @@ export interface FormattedInjuryRecord {
   description: string;
   bodyPart: string;
   treatmentProtocol: string;
-  recoveryDate: string | null;
   actualRecovery: number | null;
+  recoveryDate?: string | null;
 }
